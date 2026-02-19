@@ -4,183 +4,256 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-import { WebPlugin } from '@capacitor/core';
-
 import type {
-  CapacitorUpdaterPlugin,
-  BundleInfo,
-  LatestVersion,
-  DelayCondition,
-  ChannelRes,
-  SetChannelOptions,
-  GetChannelRes,
-  SetCustomIdOptions,
-  UnsetChannelOptions,
-  StatsUrl,
-  UpdateUrl,
-  ChannelUrl,
-  DownloadOptions,
-  BundleId,
-  AutoUpdateEnabled,
-  DeviceId,
-  BuiltinVersion,
-  PluginVersion,
-  BundleListResult,
-  ResetOptions,
-  CurrentBundleResult,
+  AppUpdateInfo,
+  AppUpdateResult,
   AppReadyResult,
-  MultiDelayConditions,
   AutoUpdateAvailable,
-} from './definitions';
+  AutoUpdateEnabled,
+  BuiltinVersion,
+  BundleId,
+  BundleInfo,
+  BundleListResult,
+  ChannelRes,
+  ChannelUrl,
+  CurrentBundleResult,
+  DeviceId,
+  DownloadOptions,
+  GetAppIdRes,
+  GetAppUpdateInfoOptions,
+  GetChannelRes,
+  GetLatestOptions,
+  ListChannelsResult,
+  LatestVersion,
+  ListOptions,
+  MultiDelayConditions,
+  OpenAppStoreOptions,
+  PluginListenerHandle,
+  PluginVersion,
+  ReactNativeUpdaterConfig,
+  ReactNativeUpdaterPlugin,
+  ResetOptions,
+  SetAppIdOptions,
+  SetChannelOptions,
+  SetCustomIdOptions,
+  SetShakeChannelSelectorOptions,
+  SetShakeMenuOptions,
+  ShakeChannelSelectorEnabled,
+  ShakeMenuEnabled,
+  UpdateFailedEvent,
+  StatsUrl,
+  UnsetChannelOptions,
+  UpdateUrl,
+} from "./definitions";
 
 const BUNDLE_BUILTIN: BundleInfo = {
-  status: 'success',
-  version: '',
-  downloaded: '1970-01-01T00:00:00.000Z',
-  id: 'builtin',
-  checksum: '',
+  status: "success",
+  version: "",
+  downloaded: "1970-01-01T00:00:00.000Z",
+  id: "builtin",
+  checksum: "",
 };
 
-export class CapacitorUpdaterWeb extends WebPlugin implements CapacitorUpdaterPlugin {
-  async setStatsUrl(options: StatsUrl): Promise<void> {
-    console.warn('Cannot setStatsUrl in web', options);
-    return;
+const unsupported = (method: string): never => {
+  throw new Error(
+    `@codepush-go/react-native-updater: '${method}' is not supported on web.`,
+  );
+};
+
+export class ReactNativeUpdaterWeb implements ReactNativeUpdaterPlugin {
+  initialize(_config: ReactNativeUpdaterConfig): Promise<string> {
+    return Promise.resolve("unsupported-web");
   }
 
-  async setUpdateUrl(options: UpdateUrl): Promise<void> {
-    console.warn('Cannot setUpdateUrl in web', options);
-    return;
+  notifyAppReady(): Promise<AppReadyResult> {
+    return Promise.resolve({ bundle: BUNDLE_BUILTIN });
   }
 
-  async setChannelUrl(options: ChannelUrl): Promise<void> {
-    console.warn('Cannot setChannelUrl in web', options);
-    return;
+  setUpdateUrl(_options: UpdateUrl): Promise<void> {
+    unsupported("setUpdateUrl");
   }
 
-  async download(options: DownloadOptions): Promise<BundleInfo> {
-    console.warn('Cannot download version in web', options);
-    return BUNDLE_BUILTIN;
+  setStatsUrl(_options: StatsUrl): Promise<void> {
+    unsupported("setStatsUrl");
   }
 
-  async next(options: BundleId): Promise<BundleInfo> {
-    console.warn('Cannot set next version in web', options);
-    return BUNDLE_BUILTIN;
+  setChannelUrl(_options: ChannelUrl): Promise<void> {
+    unsupported("setChannelUrl");
   }
 
-  async isAutoUpdateEnabled(): Promise<AutoUpdateEnabled> {
-    console.warn('Cannot get isAutoUpdateEnabled in web');
-    return { enabled: false };
+  download(_options: DownloadOptions): Promise<BundleInfo> {
+    return Promise.resolve(BUNDLE_BUILTIN);
   }
 
-  async set(options: BundleId): Promise<void> {
-    console.warn('Cannot set active bundle in web', options);
-    return;
+  next(_options: BundleId): Promise<BundleInfo> {
+    return Promise.resolve(BUNDLE_BUILTIN);
   }
 
-  async getDeviceId(): Promise<DeviceId> {
-    console.warn('Cannot get ID in web');
-    return { deviceId: 'default' };
+  set(_options: BundleId): Promise<void> {
+    unsupported("set");
   }
 
-  async getBuiltinVersion(): Promise<BuiltinVersion> {
-    console.warn('Cannot get version in web');
-    return { version: 'default' };
+  delete(_options: BundleId): Promise<void> {
+    unsupported("delete");
   }
 
-  async getPluginVersion(): Promise<PluginVersion> {
-    console.warn('Cannot get plugin version in web');
-    return { version: 'default' };
+  setBundleError(_options: BundleId): Promise<BundleInfo> {
+    unsupported("setBundleError");
   }
 
-  async delete(options: BundleId): Promise<void> {
-    console.warn('Cannot delete bundle in web', options);
+  list(_options?: ListOptions): Promise<BundleListResult> {
+    return Promise.resolve({ bundles: [] });
   }
 
-  async list(): Promise<BundleListResult> {
-    console.warn('Cannot list bundles in web');
-    return { bundles: [] };
+  reset(_options?: ResetOptions): Promise<void> {
+    unsupported("reset");
   }
 
-  async reset(options?: ResetOptions): Promise<void> {
-    console.warn('Cannot reset version in web', options);
+  current(): Promise<CurrentBundleResult> {
+    return Promise.resolve({ bundle: BUNDLE_BUILTIN, native: "0.0.0" });
   }
 
-  async current(): Promise<CurrentBundleResult> {
-    console.warn('Cannot get current bundle in web');
-    return { bundle: BUNDLE_BUILTIN, native: '0.0.0' };
+  reload(): Promise<void> {
+    unsupported("reload");
   }
 
-  async reload(): Promise<void> {
-    console.warn('Cannot reload current bundle in web');
-    return;
+  setMultiDelay(_options: MultiDelayConditions): Promise<void> {
+    unsupported("setMultiDelay");
   }
 
-  async getLatest(): Promise<LatestVersion> {
-    console.warn('Cannot getLatest current bundle in web');
-    return {
-      version: '0.0.0',
-      message: 'Cannot getLatest current bundle in web',
-    };
+  cancelDelay(): Promise<void> {
+    unsupported("cancelDelay");
   }
 
-  async setChannel(options: SetChannelOptions): Promise<ChannelRes> {
-    console.warn('Cannot setChannel in web', options);
-    return {
-      status: 'error',
-      error: 'Cannot setChannel in web',
-    };
+  getLatest(_options?: GetLatestOptions): Promise<LatestVersion> {
+    return Promise.resolve({ version: "0.0.0", message: "unsupported-web" });
   }
 
-  async unsetChannel(options: UnsetChannelOptions): Promise<void> {
-    console.warn('Cannot unsetChannel in web', options);
-    return;
+  setChannel(_options: SetChannelOptions): Promise<ChannelRes> {
+    return Promise.resolve({ status: "error", error: "unsupported-web" });
   }
 
-  async setCustomId(options: SetCustomIdOptions): Promise<void> {
-    console.warn('Cannot setCustomId in web', options);
-    return;
+  unsetChannel(_options?: UnsetChannelOptions): Promise<void> {
+    unsupported("unsetChannel");
   }
 
-  async getChannel(): Promise<GetChannelRes> {
-    console.warn('Cannot getChannel in web');
-    return {
-      status: 'error',
-      error: 'Cannot getChannel in web',
-    };
+  getChannel(): Promise<GetChannelRes> {
+    return Promise.resolve({ status: "error", error: "unsupported-web" });
   }
 
-  async notifyAppReady(): Promise<AppReadyResult> {
-    console.warn('Cannot notify App Ready in web');
-    return { bundle: BUNDLE_BUILTIN };
+  listChannels(): Promise<ListChannelsResult> {
+    return Promise.resolve({ channels: [] });
   }
 
-  async setMultiDelay(options: MultiDelayConditions): Promise<void> {
-    console.warn('Cannot setMultiDelay in web', options?.delayConditions);
-    return;
+  setCustomId(_options: SetCustomIdOptions): Promise<void> {
+    unsupported("setCustomId");
   }
 
-  async setDelay(option: DelayCondition): Promise<void> {
-    console.warn('Cannot setDelay in web', option);
-    return;
+  getBuiltinVersion(): Promise<BuiltinVersion> {
+    return Promise.resolve({ version: "0.0.0" });
   }
 
-  async cancelDelay(): Promise<void> {
-    console.warn('Cannot cancelDelay in web');
-    return;
+  getDeviceId(): Promise<DeviceId> {
+    return Promise.resolve({ deviceId: "web" });
   }
 
-  async isAutoUpdateAvailable(): Promise<AutoUpdateAvailable> {
-    console.warn('Cannot isAutoUpdateAvailable in web');
-    return { available: false };
+  getPluginVersion(): Promise<PluginVersion> {
+    return Promise.resolve({ version: "0.0.0" });
   }
 
-  async getCurrentBundle(): Promise<BundleInfo> {
-    console.warn('Cannot get current bundle in web');
-    return BUNDLE_BUILTIN;
+  isAutoUpdateEnabled(): Promise<AutoUpdateEnabled> {
+    return Promise.resolve({ enabled: false });
   }
 
-  async getNextBundle(): Promise<BundleInfo | null> {
-    console.warn('Cannot get next bundle in web');
-    return null;
+  isAutoUpdateAvailable(): Promise<AutoUpdateAvailable> {
+    return Promise.resolve({ available: false });
+  }
+
+  getNextBundle(): Promise<BundleInfo | null> {
+    return Promise.resolve(null);
+  }
+
+  getFailedUpdate(): Promise<UpdateFailedEvent | null> {
+    return Promise.resolve(null);
+  }
+
+  setShakeMenu(_options: SetShakeMenuOptions): Promise<void> {
+    unsupported("setShakeMenu");
+  }
+
+  isShakeMenuEnabled(): Promise<ShakeMenuEnabled> {
+    return Promise.resolve({ enabled: false });
+  }
+
+  setShakeChannelSelector(
+    _options: SetShakeChannelSelectorOptions,
+  ): Promise<void> {
+    unsupported("setShakeChannelSelector");
+  }
+
+  isShakeChannelSelectorEnabled(): Promise<ShakeChannelSelectorEnabled> {
+    return Promise.resolve({ enabled: false });
+  }
+
+  getAppId(): Promise<GetAppIdRes> {
+    return Promise.resolve({ appId: "web" });
+  }
+
+  setAppId(_options: SetAppIdOptions): Promise<void> {
+    unsupported("setAppId");
+  }
+
+  getAppUpdateInfo(_options?: GetAppUpdateInfoOptions): Promise<AppUpdateInfo> {
+    unsupported("getAppUpdateInfo");
+  }
+
+  openAppStore(_options?: OpenAppStoreOptions): Promise<void> {
+    unsupported("openAppStore");
+  }
+
+  performImmediateUpdate(): Promise<AppUpdateResult> {
+    unsupported("performImmediateUpdate");
+  }
+
+  startFlexibleUpdate(): Promise<AppUpdateResult> {
+    unsupported("startFlexibleUpdate");
+  }
+
+  completeFlexibleUpdate(): Promise<void> {
+    unsupported("completeFlexibleUpdate");
+  }
+
+  compareVersions(_options: {
+    versionA: string;
+    versionB: string;
+  }): Promise<number> {
+    unsupported("compareVersions");
+  }
+
+  checkForUpdate(): Promise<string> {
+    return Promise.resolve("unsupported-web");
+  }
+
+  appMovedToForeground(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  appMovedToBackground(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  addListener(
+    _eventName: string,
+    _listenerFunc: (...args: any[]) => void,
+  ): Promise<PluginListenerHandle> {
+    return Promise.resolve({
+      remove: async () => {
+        return;
+      },
+    });
+  }
+
+  removeAllListeners(): Promise<void> {
+    return Promise.resolve();
   }
 }

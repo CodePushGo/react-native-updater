@@ -12,33 +12,33 @@ public struct CryptoCipherV2 {
 
     public static func decryptChecksum(checksum: String, publicKey: String) throws -> String {
         if publicKey.isEmpty {
-            print("\(CapacitorUpdater.TAG) The public key is empty")
+            print("\(ReactNativeUpdaterCore.TAG) The public key is empty")
             return checksum
         }
         do {
             guard let checksumBytes = Data(base64Encoded: checksum) else {
-                print("\(CapacitorUpdater.TAG) Cannot decode checksum as base64: \(checksum)")
+                print("\(ReactNativeUpdaterCore.TAG) Cannot decode checksum as base64: \(checksum)")
                 throw CustomError.cannotDecode
             }
 
             if checksumBytes.isEmpty {
-                print("\(CapacitorUpdater.TAG) Decoded checksum is empty")
+                print("\(ReactNativeUpdaterCore.TAG) Decoded checksum is empty")
                 throw CustomError.cannotDecode
             }
 
             guard let rsaPublicKey = RSAPublicKey.load(rsaPublicKey: publicKey) else {
-                print("\(CapacitorUpdater.TAG) The public key is not a valid RSA Public key")
+                print("\(ReactNativeUpdaterCore.TAG) The public key is not a valid RSA Public key")
                 throw CustomError.cannotDecode
             }
 
             guard let decryptedChecksum = rsaPublicKey.decrypt(data: checksumBytes) else {
-                print("\(CapacitorUpdater.TAG) decryptChecksum fail")
+                print("\(ReactNativeUpdaterCore.TAG) decryptChecksum fail")
                 throw NSError(domain: "Failed to decrypt session key data", code: 2, userInfo: nil)
             }
 
             return decryptedChecksum.base64EncodedString()
         } catch {
-            print("\(CapacitorUpdater.TAG) decryptChecksum fail: \(error.localizedDescription)")
+            print("\(ReactNativeUpdaterCore.TAG) decryptChecksum fail: \(error.localizedDescription)")
             throw CustomError.cannotDecode
         }
     }
@@ -51,7 +51,7 @@ public struct CryptoCipherV2 {
             do {
                 fileHandle = try FileHandle(forReadingFrom: filePath)
             } catch {
-                print("\(CapacitorUpdater.TAG) Cannot open file for checksum: \(filePath.path)", error)
+                print("\(ReactNativeUpdaterCore.TAG) Cannot open file for checksum: \(filePath.path)", error)
                 return ""
             }
 
@@ -59,7 +59,7 @@ public struct CryptoCipherV2 {
                 do {
                     try fileHandle.close()
                 } catch {
-                    print("\(CapacitorUpdater.TAG) Error closing file: \(error)")
+                    print("\(ReactNativeUpdaterCore.TAG) Error closing file: \(error)")
                 }
             }
 
@@ -72,7 +72,7 @@ public struct CryptoCipherV2 {
                         fileData = fileHandle.readData(ofLength: bufferSize)
                     }
                 } catch {
-                    print("\(CapacitorUpdater.TAG) Error reading file: \(error)")
+                    print("\(ReactNativeUpdaterCore.TAG) Error reading file: \(error)")
                     return false
                 }
 
@@ -87,25 +87,25 @@ public struct CryptoCipherV2 {
             let digest = sha256.finalize()
             return digest.compactMap { String(format: "%02x", $0) }.joined()
         } catch {
-            print("\(CapacitorUpdater.TAG) Cannot get checksum: \(filePath.path)", error)
+            print("\(ReactNativeUpdaterCore.TAG) Cannot get checksum: \(filePath.path)", error)
             return ""
         }
     }
 
     public static func decryptFile(filePath: URL, publicKey: String, sessionKey: String, version: String) throws {
         if publicKey.isEmpty || sessionKey.isEmpty || sessionKey.components(separatedBy: ":").count != 2 {
-            print("\(CapacitorUpdater.TAG) Cannot found public key or sessionKey")
+            print("\(ReactNativeUpdaterCore.TAG) Cannot found public key or sessionKey")
             return
         }
 
         if !publicKey.hasPrefix("-----BEGIN RSA PUBLIC KEY-----") {
-            print("\(CapacitorUpdater.TAG) The public key is not a valid RSA Public key")
+            print("\(ReactNativeUpdaterCore.TAG) The public key is not a valid RSA Public key")
             return
         }
 
         do {
             guard let rsaPublicKey = RSAPublicKey.load(rsaPublicKey: publicKey) else {
-                print("\(CapacitorUpdater.TAG) The public key is not a valid RSA Public key")
+                print("\(ReactNativeUpdaterCore.TAG) The public key is not a valid RSA Public key")
                 throw CustomError.cannotDecode
             }
 
@@ -114,27 +114,27 @@ public struct CryptoCipherV2 {
             let encryptedKeyBase64 = sessionKeyComponents[1]
 
             guard let ivData = Data(base64Encoded: ivBase64) else {
-                print("\(CapacitorUpdater.TAG) Cannot decode sessionKey IV", ivBase64)
+                print("\(ReactNativeUpdaterCore.TAG) Cannot decode sessionKey IV", ivBase64)
                 throw CustomError.cannotDecode
             }
 
             if ivData.count != 16 {
-                print("\(CapacitorUpdater.TAG) IV data has invalid length: \(ivData.count), expected 16")
+                print("\(ReactNativeUpdaterCore.TAG) IV data has invalid length: \(ivData.count), expected 16")
                 throw CustomError.cannotDecode
             }
 
             guard let sessionKeyDataEncrypted = Data(base64Encoded: encryptedKeyBase64) else {
-                print("\(CapacitorUpdater.TAG) Cannot decode sessionKey data", encryptedKeyBase64)
+                print("\(ReactNativeUpdaterCore.TAG) Cannot decode sessionKey data", encryptedKeyBase64)
                 throw NSError(domain: "Invalid session key data", code: 1, userInfo: nil)
             }
 
             guard let sessionKeyDataDecrypted = rsaPublicKey.decrypt(data: sessionKeyDataEncrypted) else {
-                print("\(CapacitorUpdater.TAG) Failed to decrypt session key data")
+                print("\(ReactNativeUpdaterCore.TAG) Failed to decrypt session key data")
                 throw NSError(domain: "Failed to decrypt session key data", code: 2, userInfo: nil)
             }
 
             if sessionKeyDataDecrypted.count != 16 {
-                print("\(CapacitorUpdater.TAG) Decrypted session key has invalid length: \(sessionKeyDataDecrypted.count), expected 16")
+                print("\(ReactNativeUpdaterCore.TAG) Decrypted session key has invalid length: \(sessionKeyDataDecrypted.count), expected 16")
                 throw NSError(domain: "Invalid decrypted session key", code: 5, userInfo: nil)
             }
 
@@ -144,38 +144,38 @@ public struct CryptoCipherV2 {
             do {
                 encryptedData = try Data(contentsOf: filePath)
             } catch {
-                print("\(CapacitorUpdater.TAG) Failed to read encrypted data: \(error)")
+                print("\(ReactNativeUpdaterCore.TAG) Failed to read encrypted data: \(error)")
                 throw NSError(domain: "Failed to read encrypted data", code: 3, userInfo: nil)
             }
 
             if encryptedData.isEmpty {
-                print("\(CapacitorUpdater.TAG) Encrypted file data is empty")
+                print("\(ReactNativeUpdaterCore.TAG) Encrypted file data is empty")
                 throw NSError(domain: "Empty encrypted data", code: 6, userInfo: nil)
             }
 
             guard let decryptedData = aesPrivateKey.decrypt(data: encryptedData) else {
-                print("\(CapacitorUpdater.TAG) Failed to decrypt data")
+                print("\(ReactNativeUpdaterCore.TAG) Failed to decrypt data")
                 throw NSError(domain: "Failed to decrypt data", code: 4, userInfo: nil)
             }
 
             if decryptedData.isEmpty {
-                print("\(CapacitorUpdater.TAG) Decrypted data is empty")
+                print("\(ReactNativeUpdaterCore.TAG) Decrypted data is empty")
                 throw NSError(domain: "Empty decrypted data", code: 7, userInfo: nil)
             }
 
             do {
                 try decryptedData.write(to: filePath, options: .atomic)
                 if !FileManager.default.fileExists(atPath: filePath.path) {
-                    print("\(CapacitorUpdater.TAG) File was not created after write")
+                    print("\(ReactNativeUpdaterCore.TAG) File was not created after write")
                     throw NSError(domain: "File write failed", code: 8, userInfo: nil)
                 }
             } catch {
-                print("\(CapacitorUpdater.TAG) Error writing decrypted file: \(error)")
+                print("\(ReactNativeUpdaterCore.TAG) Error writing decrypted file: \(error)")
                 throw error
             }
 
         } catch {
-            print("\(CapacitorUpdater.TAG) decryptFile fail")
+            print("\(ReactNativeUpdaterCore.TAG) decryptFile fail")
             throw CustomError.cannotDecode
         }
     }

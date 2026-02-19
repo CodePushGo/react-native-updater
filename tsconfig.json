@@ -15,7 +15,7 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2017",
-    "types": ["@capacitor/core"],
+    "types": ["react", "react-native"],
     "skipLibCheck": true,
   },
   "files": ["src/index.ts"]

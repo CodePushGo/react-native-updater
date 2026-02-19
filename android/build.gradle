@@ -18,7 +18,7 @@ buildscript {
 apply plugin: 'com.android.library'
 
 android {
-    namespace "ee.forgr.capacitor_updater"
+    namespace "com.codepushgo.reactnativeupdater"
     compileSdk project.hasProperty('compileSdkVersion') ? rootProject.ext.compileSdkVersion : 35
     defaultConfig {
         minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 23
@@ -43,6 +43,13 @@ android {
 }
 
 repositories {
+    maven {
+        // React Native Android artifacts (for libraries built outside an app project)
+        url("$rootDir/../node_modules/react-native/android")
+    }
+    maven {
+        url("$rootDir/../node_modules/jsc-android/dist")
+    }
     google()
     mavenCentral()
 }
@@ -51,16 +58,18 @@ repositories {
 dependencies {
     def work_version = "2.10.0"
     implementation "androidx.work:work-runtime:$work_version"
+    implementation "com.google.android.play:app-update:2.1.0"
+    implementation "com.google.android.play:app-update-ktx:2.1.0"
     implementation "com.google.android.gms:play-services-tasks:18.3.0"
     implementation "com.google.guava:guava:33.4.8-android"
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation project(':capacitor-android')
+    implementation "com.facebook.react:react-android:+"
+    implementation "com.jakewharton:process-phoenix:3.0.0"
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation 'io.github.g00fy2:versioncompare:1.5.0'
     implementation 'com.google.code.gson:gson:2.13.0'
+    implementation 'org.brotli:dec:0.1.2'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
-    implementation 'org.brotli:dec:0.1.2'
-    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 }

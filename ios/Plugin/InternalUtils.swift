@@ -67,6 +67,51 @@ extension GetChannel {
         return dict
     }
 }
+// swiftlint:disable identifier_name
+struct ChannelInfo: Codable {
+    let id: String?
+    let name: String?
+    let `public`: Bool?
+    let allow_self_set: Bool?
+}
+// swiftlint:enable identifier_name
+struct ListChannelsDec: Decodable {
+    let channels: [ChannelInfo]?
+    let error: String?
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+
+        if let channelsArray = try? container.decode([ChannelInfo].self) {
+            self.channels = channelsArray
+            self.error = nil
+        } else {
+            let errorContainer = try decoder.container(keyedBy: CodingKeys.self)
+            self.channels = nil
+            self.error = try? errorContainer.decode(String.self, forKey: .error)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case error
+    }
+}
+public class ListChannels: NSObject {
+    var channels: [[String: Any]] = []
+    var error: String = ""
+}
+extension ListChannels {
+    func toDict() -> [String: Any] {
+        var dict: [String: Any] = [String: Any]()
+        let otherSelf: Mirror = Mirror(reflecting: self)
+        for child: Mirror.Child in otherSelf.children {
+            if let key: String = child.label {
+                dict[key] = child.value
+            }
+        }
+        return dict
+    }
+}
 struct InfoObject: Codable {
     let platform: String?
     let device_id: String?
@@ -111,6 +156,7 @@ struct AppVersionDec: Decodable {
     let message: String?
     let error: String?
     let session_key: String?
+    let breaking: Bool?
     let major: Bool?
     let data: [String: String]?
     let manifest: [ManifestEntry]?
@@ -123,6 +169,7 @@ public class AppVersion: NSObject {
     var message: String?
     var error: String?
     var sessionKey: String?
+    var breaking: Bool?
     var major: Bool?
     var data: [String: String]?
     var manifest: [ManifestEntry]?

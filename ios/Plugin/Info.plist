@@ -18,11 +18,13 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSPrincipalClass</key>
 	<string></string>
-	<key>UIFileSharingEnabled</key>
+	<key>RCTNewArchEnabled</key>
 	<true/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<key>UIFileSharingEnabled</key>
 	<true/>
 </dict>
 </plist>

@@ -1,10 +1,18 @@
-platform :ios, '14.0'
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve("react-native/scripts/react_native_pods.rb", {paths: [process.argv[1]]})',
+  __dir__
+]).strip
 
-def capacitor_pods
-  # Comment the next line if you're not using Swift and don't want to use dynamic frameworks
+platform :ios, '15.1'
+prepare_react_native_project!
+
+def plugin_pods
   use_frameworks!
-  pod 'Capacitor', :path => '../node_modules/@capacitor/ios'
-  pod 'CapacitorCordova', :path => '../node_modules/@capacitor/ios'
+  use_react_native!(
+    :path => '../node_modules/react-native',
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
   pod 'SSZipArchive', '2.4.3'
   pod 'Alamofire', '5.10.2'
   pod 'Version', '0.8.0'
@@ -12,23 +20,24 @@ def capacitor_pods
 end
 
 target 'Plugin' do
-  capacitor_pods
+  plugin_pods
 end
 
 target 'PluginTests' do
-  capacitor_pods
+  use_frameworks!
+  inherit! :complete
 end
 
 post_install do |installer|
-  # Here is the code I provide above ==================
-  installer.generated_projects.each do |project|
-    project.targets.each do |target|
-      target.build_configurations.each do |config|
-        if config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] == '8.0'
-          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '11.0'
-        end
-      end
+  react_native_post_install(
+    installer,
+    '../node_modules/react-native',
+    :mac_catalyst_enabled => true
+  )
+
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
     end
   end
-  #Here is the end ===================================
 end

@@ -4,10 +4,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-package ee.forgr.capacitor_updater;
-
-import com.getcapacitor.JSObject;
+package com.codepushgo.reactnativeupdater;
 
 public interface Callback {
-    void callback(JSObject jsoObject);
+  void callback(JSObject jsoObject);
 }

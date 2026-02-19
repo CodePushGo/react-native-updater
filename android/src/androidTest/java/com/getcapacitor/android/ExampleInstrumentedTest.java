@@ -1,4 +1,4 @@
-package com.getcapacitor.android;
+package com.codepushgo.reactnativeupdater;
 
 import static org.junit.Assert.*;
 
@@ -16,11 +16,15 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class ExampleInstrumentedTest {
 
-    @Test
-    public void useAppContext() throws Exception {
-        // Context of the app under test.
-        Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
+  @Test
+  public void useAppContext() throws Exception {
+    // Context of the app under test.
+    Context appContext = InstrumentationRegistry.getInstrumentation()
+      .getTargetContext();
 
-        assertEquals("com.getcapacitor.android", appContext.getPackageName());
-    }
+    assertEquals(
+      "com.codepushgo.reactnativeupdater.test",
+      appContext.getPackageName()
+    );
+  }
 }

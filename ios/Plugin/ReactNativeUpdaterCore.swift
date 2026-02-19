@@ -14,7 +14,7 @@ import Alamofire
 import Compression
 import UIKit
 
-@objc public class CapacitorUpdater: NSObject {
+@objc public class ReactNativeUpdaterCore: NSObject {
 
     private let versionCode: String = Bundle.main.versionCode ?? ""
     private let versionOs = UIDevice.current.systemVersion
@@ -29,7 +29,7 @@ import UIKit
     // Add this line to declare cacheFolder
     private let cacheFolder: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!.appendingPathComponent("capgo_downloads")
 
-    public static let TAG: String = "✨  Capacitor-updater:"
+    public static let TAG: String = "✨  ReactNative-updater:"
     public let CAP_SERVER_PATH: String = "serverBasePath"
     public var versionBuild: String = ""
     public var customId: String = ""
@@ -41,6 +41,7 @@ import UIKit
     public var appId: String = ""
     public var deviceID = ""
     public var publicKey: String = ""
+    public var directUpdate: Bool = false
 
     public var notifyDownloadRaw: (String, Int, Bool) -> Void = { _, _, _  in }
     public func notifyDownload(id: String, percent: Int, ignoreMultipleOfTen: Bool = false) {
@@ -108,7 +109,7 @@ import UIKit
             do {
                 try FileManager.default.createDirectory(atPath: source.path, withIntermediateDirectories: true, attributes: nil)
             } catch {
-                print("\(CapacitorUpdater.TAG) Cannot createDirectory \(source.path)")
+                print("\(ReactNativeUpdaterCore.TAG) Cannot createDirectory \(source.path)")
                 throw CustomError.cannotCreateDirectory
             }
         }
@@ -118,7 +119,7 @@ import UIKit
         do {
             try FileManager.default.removeItem(atPath: source.path)
         } catch {
-            print("\(CapacitorUpdater.TAG) File not removed. \(source.path)")
+            print("\(ReactNativeUpdaterCore.TAG) File not removed. \(source.path)")
             throw CustomError.cannotDeleteDirectory
         }
     }
@@ -135,14 +136,14 @@ import UIKit
                 return false
             }
         } catch {
-            print("\(CapacitorUpdater.TAG) File not moved. source: \(source.path) dest: \(dest.path)")
+            print("\(ReactNativeUpdaterCore.TAG) File not moved. source: \(source.path) dest: \(dest.path)")
             throw CustomError.cannotUnflat
         }
     }
 
     private func unzipProgressHandler(entry: String, zipInfo: unz_file_info, entryNumber: Int, total: Int, destUnZip: URL, id: String, unzipError: inout NSError?) {
         if entry.contains("\\") {
-            print("\(CapacitorUpdater.TAG) unzip: Windows path is not supported, please use unix path as required by zip RFC: \(entry)")
+            print("\(ReactNativeUpdaterCore.TAG) unzip: Windows path is not supported, please use unix path as required by zip RFC: \(entry)")
             self.sendStats(action: "windows_path_fail")
         }
 
@@ -245,7 +246,7 @@ import UIKit
         if let channel = channel {
             parameters.defaultChannel = channel
         }
-        print("\(CapacitorUpdater.TAG) Auto-update parameters: \(parameters)")
+        print("\(ReactNativeUpdaterCore.TAG) Auto-update parameters: \(parameters)")
         let request = AF.request(url, method: .post, parameters: parameters, encoder: JSONParameterEncoder.default, requestModifier: { $0.timeoutInterval = self.timeout })
 
         request.validate().responseDecodable(of: AppVersionDec.self) { response in
@@ -272,6 +273,9 @@ import UIKit
                 if let sessionKey = response.value?.session_key {
                     latest.sessionKey = sessionKey
                 }
+                if let breaking = response.value?.breaking {
+                    latest.breaking = breaking
+                }
                 if let data = response.value?.data {
                     latest.data = data
                 }
@@ -279,7 +283,7 @@ import UIKit
                     latest.manifest = manifest
                 }
             case let .failure(error):
-                print("\(CapacitorUpdater.TAG) Error getting Latest", response.value ?? "", error )
+                print("\(ReactNativeUpdaterCore.TAG) Error getting Latest", response.value ?? "", error )
                 latest.message = "Error getting Latest \(String(describing: response.value))"
                 latest.error = "response_error"
             }
@@ -292,7 +296,7 @@ import UIKit
     private func setCurrentBundle(bundle: String) {
         UserDefaults.standard.set(bundle, forKey: self.CAP_SERVER_PATH)
         UserDefaults.standard.synchronize()
-        print("\(CapacitorUpdater.TAG) Current bundle set to: \((bundle ).isEmpty ? BundleInfo.ID_BUILTIN : bundle)")
+        print("\(ReactNativeUpdaterCore.TAG) Current bundle set to: \((bundle ).isEmpty ? BundleInfo.ID_BUILTIN : bundle)")
     }
 
     private var tempDataPath: URL {
@@ -311,7 +315,7 @@ import UIKit
 
     public func downloadManifest(manifest: [ManifestEntry], version: String, sessionKey: String) throws -> BundleInfo {
         let id = self.randomString(length: 10)
-        print("\(CapacitorUpdater.TAG) downloadManifest start \(id)")
+        print("\(ReactNativeUpdaterCore.TAG) downloadManifest start \(id)")
         let destFolder = self.getBundleDirectory(id: id)
         let builtinFolder = Bundle.main.bundleURL.appendingPathComponent("public")
 
@@ -343,7 +347,7 @@ import UIKit
                     fileHash = try CryptoCipherV2.decryptChecksum(checksum: fileHash, publicKey: self.publicKey)
                 } catch {
                     downloadError = error
-                    print("\(CapacitorUpdater.TAG) CryptoCipherV2.decryptChecksum error \(id) \(fileName) error: \(error)")
+                    print("\(ReactNativeUpdaterCore.TAG) CryptoCipherV2.decryptChecksum error \(id) \(fileName) error: \(error)")
                 }
             }
 
@@ -360,13 +364,13 @@ import UIKit
 
             if FileManager.default.fileExists(atPath: builtinFilePath.path) && verifyChecksum(file: builtinFilePath, expectedHash: fileHash) {
                 try FileManager.default.copyItem(at: builtinFilePath, to: destFilePath)
-                print("\(CapacitorUpdater.TAG) downloadManifest \(fileName) using builtin file \(id)")
+                print("\(ReactNativeUpdaterCore.TAG) downloadManifest \(fileName) using builtin file \(id)")
                 completedFiles += 1
                 self.notifyDownload(id: id, percent: self.calcTotalPercent(percent: Int((Double(completedFiles) / Double(totalFiles)) * 100), min: 10, max: 70))
                 dispatchGroup.leave()
             } else if FileManager.default.fileExists(atPath: cacheFilePath.path) && verifyChecksum(file: cacheFilePath, expectedHash: fileHash) {
                 try FileManager.default.copyItem(at: cacheFilePath, to: destFilePath)
-                print("\(CapacitorUpdater.TAG) downloadManifest \(fileName) copy from cache \(id)")
+                print("\(ReactNativeUpdaterCore.TAG) downloadManifest \(fileName) copy from cache \(id)")
                 completedFiles += 1
                 self.notifyDownload(id: id, percent: self.calcTotalPercent(percent: Int((Double(completedFiles) / Double(totalFiles)) * 100), min: 10, max: 70))
                 dispatchGroup.leave()
@@ -430,13 +434,13 @@ import UIKit
 
                             completedFiles += 1
                             self.notifyDownload(id: id, percent: self.calcTotalPercent(percent: Int((Double(completedFiles) / Double(totalFiles)) * 100), min: 10, max: 70))
-                            print("\(CapacitorUpdater.TAG) downloadManifest \(id) \(fileName) downloaded\(isBrotli ? ", decompressed" : "")\(!self.publicKey.isEmpty && !sessionKey.isEmpty ? ", decrypted" : ""), and cached")
+                            print("\(ReactNativeUpdaterCore.TAG) downloadManifest \(id) \(fileName) downloaded\(isBrotli ? ", decompressed" : "")\(!self.publicKey.isEmpty && !sessionKey.isEmpty ? ", decrypted" : ""), and cached")
                         } catch {
                             downloadError = error
-                            NSLog("\(CapacitorUpdater.TAG) downloadManifest \(id) \(fileName) error: \(error.localizedDescription)")
+                            NSLog("\(ReactNativeUpdaterCore.TAG) downloadManifest \(id) \(fileName) error: \(error.localizedDescription)")
                         }
                     case .failure(let error):
-                        NSLog("\(CapacitorUpdater.TAG) downloadManifest \(id) \(fileName) download error: \(error.localizedDescription). Debug response: \(response.debugDescription).")
+                        NSLog("\(ReactNativeUpdaterCore.TAG) downloadManifest \(id) \(fileName) download error: \(error.localizedDescription). Debug response: \(response.debugDescription).")
                     }
                 }
             }
@@ -455,7 +459,7 @@ import UIKit
         let updatedBundle = bundleInfo.setStatus(status: BundleStatus.PENDING.localizedString)
         self.saveBundleInfo(id: id, bundle: updatedBundle)
 
-        print("\(CapacitorUpdater.TAG) downloadManifest done \(id)")
+        print("\(ReactNativeUpdaterCore.TAG) downloadManifest done \(id)")
         return updatedBundle
     }
 
@@ -496,7 +500,7 @@ import UIKit
         var status = compression_stream_init(streamPointer, COMPRESSION_STREAM_DECODE, COMPRESSION_BROTLI)
 
         guard status != COMPRESSION_STATUS_ERROR else {
-            print("\(CapacitorUpdater.TAG) Error: Failed to initialize Brotli stream for \(fileName). Status: \(status)")
+            print("\(ReactNativeUpdaterCore.TAG) Error: Failed to initialize Brotli stream for \(fileName). Status: \(status)")
             return nil
         }
 
@@ -518,7 +522,7 @@ import UIKit
                     if let baseAddress = rawBufferPointer.baseAddress {
                         streamPointer.pointee.src_ptr = baseAddress.assumingMemoryBound(to: UInt8.self)
                     } else {
-                        print("\(CapacitorUpdater.TAG) Error: Failed to get base address for \(fileName)")
+                        print("\(ReactNativeUpdaterCore.TAG) Error: Failed to get base address for \(fileName)")
                         status = COMPRESSION_STATUS_ERROR
                         return
                     }
@@ -528,7 +532,7 @@ import UIKit
             if status == COMPRESSION_STATUS_ERROR {
                 let maxBytes = min(32, data.count)
                 let hexDump = data.prefix(maxBytes).map { String(format: "%02x", $0) }.joined(separator: " ")
-                print("\(CapacitorUpdater.TAG) Error: Brotli decompression failed for \(fileName). First \(maxBytes) bytes: \(hexDump)")
+                print("\(ReactNativeUpdaterCore.TAG) Error: Brotli decompression failed for \(fileName). First \(maxBytes) bytes: \(hexDump)")
                 break
             }
 
@@ -542,18 +546,18 @@ import UIKit
             if status == COMPRESSION_STATUS_END {
                 break
             } else if status == COMPRESSION_STATUS_ERROR {
-                print("\(CapacitorUpdater.TAG) Error: Brotli process failed for \(fileName). Status: \(status)")
+                print("\(ReactNativeUpdaterCore.TAG) Error: Brotli process failed for \(fileName). Status: \(status)")
                 if let text = String(data: data, encoding: .utf8) {
                     let asciiCount = text.unicodeScalars.filter { $0.isASCII }.count
                     let totalCount = text.unicodeScalars.count
                     if totalCount > 0 && Double(asciiCount) / Double(totalCount) >= 0.8 {
-                        print("\(CapacitorUpdater.TAG) Error: Input appears to be plain text: \(text)")
+                        print("\(ReactNativeUpdaterCore.TAG) Error: Input appears to be plain text: \(text)")
                     }
                 }
 
                 let maxBytes = min(32, data.count)
                 let hexDump = data.prefix(maxBytes).map { String(format: "%02x", $0) }.joined(separator: " ")
-                print("\(CapacitorUpdater.TAG) Error: Raw data (\(fileName)): \(hexDump)")
+                print("\(ReactNativeUpdaterCore.TAG) Error: Raw data (\(fileName)): \(hexDump)")
 
                 return nil
             }
@@ -564,7 +568,7 @@ import UIKit
             }
 
             if input.count == 0 {
-                print("\(CapacitorUpdater.TAG) Error: Zero input size for \(fileName)")
+                print("\(ReactNativeUpdaterCore.TAG) Error: Zero input size for \(fileName)")
                 break
             }
         }
@@ -593,7 +597,7 @@ import UIKit
         let monitor = ClosureEventMonitor()
         monitor.requestDidCompleteTaskWithError = { (_, _, error) in
             if error != nil {
-                print("\(CapacitorUpdater.TAG) Downloading failed - ClosureEventMonitor activated")
+                print("\(ReactNativeUpdaterCore.TAG) Downloading failed - ClosureEventMonitor activated")
                 mainError = error as NSError?
             }
         }
@@ -624,11 +628,11 @@ import UIKit
                     }
 
                 } else {
-                    print("\(CapacitorUpdater.TAG) Download failed")
+                    print("\(ReactNativeUpdaterCore.TAG) Download failed")
                 }
 
             case .complete:
-                print("\(CapacitorUpdater.TAG) Download complete, total received bytes: \(totalReceivedBytes)")
+                print("\(ReactNativeUpdaterCore.TAG) Download complete, total received bytes: \(totalReceivedBytes)")
                 self.notifyDownload(id: id, percent: 70, ignoreMultipleOfTen: true)
                 semaphore.signal()
             }
@@ -650,7 +654,7 @@ import UIKit
         reachabilityManager?.stopListening()
 
         if mainError != nil {
-            print("\(CapacitorUpdater.TAG) Failed to download: \(String(describing: mainError))")
+            print("\(ReactNativeUpdaterCore.TAG) Failed to download: \(String(describing: mainError))")
             self.saveBundleInfo(id: id, bundle: BundleInfo(id: id, version: version, status: BundleStatus.ERROR, downloaded: Date(), checksum: checksum))
             throw mainError!
         }
@@ -660,7 +664,7 @@ import UIKit
             try CryptoCipherV2.decryptFile(filePath: tempDataPath, publicKey: self.publicKey, sessionKey: sessionKey, version: version)
             try FileManager.default.moveItem(at: tempDataPath, to: finalPath)
         } catch {
-            print("\(CapacitorUpdater.TAG) Failed decrypt file : \(error)")
+            print("\(ReactNativeUpdaterCore.TAG) Failed decrypt file : \(error)")
             self.saveBundleInfo(id: id, bundle: BundleInfo(id: id, version: version, status: BundleStatus.ERROR, downloaded: Date(), checksum: checksum))
             cleanDownloadData()
             throw error
@@ -668,11 +672,11 @@ import UIKit
 
         do {
             checksum = CryptoCipherV2.calcChecksum(filePath: finalPath)
-            print("\(CapacitorUpdater.TAG) Downloading: 80% (unzipping)")
+            print("\(ReactNativeUpdaterCore.TAG) Downloading: 80% (unzipping)")
             try self.saveDownloaded(sourceZip: finalPath, id: id, base: self.libraryDir.appendingPathComponent(self.bundleDirectory), notify: true)
 
         } catch {
-            print("\(CapacitorUpdater.TAG) Failed to unzip file: \(error)")
+            print("\(ReactNativeUpdaterCore.TAG) Failed to unzip file: \(error)")
             self.saveBundleInfo(id: id, bundle: BundleInfo(id: id, version: version, status: BundleStatus.ERROR, downloaded: Date(), checksum: checksum))
             cleanDownloadData()
             // todo: cleanup zip attempts
@@ -680,25 +684,25 @@ import UIKit
         }
 
         self.notifyDownload(id: id, percent: 90)
-        print("\(CapacitorUpdater.TAG) Downloading: 90% (wrapping up)")
+        print("\(ReactNativeUpdaterCore.TAG) Downloading: 90% (wrapping up)")
         let info = BundleInfo(id: id, version: version, status: BundleStatus.PENDING, downloaded: Date(), checksum: checksum)
         self.saveBundleInfo(id: id, bundle: info)
         self.cleanDownloadData()
         self.notifyDownload(id: id, percent: 100)
-        print("\(CapacitorUpdater.TAG) Downloading: 100% (complete)")
+        print("\(ReactNativeUpdaterCore.TAG) Downloading: 100% (complete)")
         return info
     }
     private func ensureResumableFilesExist() {
         let fileManager = FileManager.default
         if !fileManager.fileExists(atPath: tempDataPath.path) {
             if !fileManager.createFile(atPath: tempDataPath.path, contents: Data()) {
-                print("\(CapacitorUpdater.TAG) Cannot ensure that a file at \(tempDataPath.path) exists")
+                print("\(ReactNativeUpdaterCore.TAG) Cannot ensure that a file at \(tempDataPath.path) exists")
             }
         }
 
         if !fileManager.fileExists(atPath: updateInfo.path) {
             if !fileManager.createFile(atPath: updateInfo.path, contents: Data()) {
-                print("\(CapacitorUpdater.TAG) Cannot ensure that a file at \(updateInfo.path) exists")
+                print("\(ReactNativeUpdaterCore.TAG) Cannot ensure that a file at \(updateInfo.path) exists")
             }
         }
     }
@@ -710,7 +714,7 @@ import UIKit
             do {
                 try fileManager.removeItem(at: tempDataPath)
             } catch {
-                print("\(CapacitorUpdater.TAG) Could not delete file at \(tempDataPath): \(error)")
+                print("\(ReactNativeUpdaterCore.TAG) Could not delete file at \(tempDataPath): \(error)")
             }
         }
         // Deleting update.dat
@@ -718,7 +722,7 @@ import UIKit
             do {
                 try fileManager.removeItem(at: updateInfo)
             } catch {
-                print("\(CapacitorUpdater.TAG) Could not delete file at \(updateInfo): \(error)")
+                print("\(ReactNativeUpdaterCore.TAG) Could not delete file at \(updateInfo): \(error)")
             }
         }
     }
@@ -746,7 +750,7 @@ import UIKit
         do {
             try "\(version)".write(to: updateInfo, atomically: true, encoding: .utf8)
         } catch {
-            print("\(CapacitorUpdater.TAG) Failed to save progress: \(error)")
+            print("\(ReactNativeUpdaterCore.TAG) Failed to save progress: \(error)")
         }
     }
     private func getLocalUpdateVersion() -> String { // Return the version that was tried to be downloaded on last download attempt
@@ -768,7 +772,7 @@ import UIKit
                 return fileSize.int64Value
             }
         } catch {
-            print("\(CapacitorUpdater.TAG) Could not retrieve already downloaded data size : \(error)")
+            print("\(ReactNativeUpdaterCore.TAG) Could not retrieve already downloaded data size : \(error)")
         }
         return 0
     }
@@ -780,7 +784,7 @@ import UIKit
             do {
                 let files: [String] = try FileManager.default.contentsOfDirectory(atPath: dest.path)
                 var res: [BundleInfo] = []
-                print("\(CapacitorUpdater.TAG) list File : \(dest.path)")
+                print("\(ReactNativeUpdaterCore.TAG) list File : \(dest.path)")
                 if dest.exist {
                     for id: String in files {
                         res.append(self.getBundleInfo(id: id))
@@ -788,12 +792,12 @@ import UIKit
                 }
                 return res
             } catch {
-                print("\(CapacitorUpdater.TAG) No version available \(dest.path)")
+                print("\(ReactNativeUpdaterCore.TAG) No version available \(dest.path)")
                 return []
             }
         } else {
             guard let regex = try? NSRegularExpression(pattern: "^[0-9A-Za-z]{10}_info$") else {
-                print("\(CapacitorUpdater.TAG) Invald regex ?????")
+                print("\(ReactNativeUpdaterCore.TAG) Invald regex ?????")
                 return []
             }
             return UserDefaults.standard.dictionaryRepresentation().keys.filter {
@@ -812,7 +816,7 @@ import UIKit
     public func delete(id: String, removeInfo: Bool) -> Bool {
         let deleted: BundleInfo = self.getBundleInfo(id: id)
         if deleted.isBuiltin() || self.getCurrentBundleId() == id {
-            print("\(CapacitorUpdater.TAG) Cannot delete \(id)")
+            print("\(ReactNativeUpdaterCore.TAG) Cannot delete \(id)")
             return false
         }
 
@@ -821,7 +825,7 @@ import UIKit
            !next.isDeleted() &&
             !next.isErrorStatus() &&
             next.getId() == id {
-            print("\(CapacitorUpdater.TAG) Cannot delete the next bundle \(id)")
+            print("\(ReactNativeUpdaterCore.TAG) Cannot delete the next bundle \(id)")
             return false
         }
 
@@ -829,7 +833,7 @@ import UIKit
         do {
             try FileManager.default.removeItem(atPath: destPersist.path)
         } catch {
-            print("\(CapacitorUpdater.TAG) Folder \(destPersist.path), not removed.")
+            print("\(ReactNativeUpdaterCore.TAG) Folder \(destPersist.path), not removed.")
             // even if, we don;t care. Android doesn't care
             if removeInfo {
                 self.removeBundleInfo(id: id)
@@ -842,7 +846,7 @@ import UIKit
         } else {
             self.saveBundleInfo(id: id, bundle: deleted.setStatus(status: BundleStatus.DELETED.localizedString))
         }
-        print("\(CapacitorUpdater.TAG) bundle delete \(deleted.getVersionName())")
+        print("\(ReactNativeUpdaterCore.TAG) bundle delete \(deleted.getVersionName())")
         self.sendStats(action: "delete", versionName: deleted.getVersionName())
         return true
     }
@@ -895,7 +899,7 @@ import UIKit
     public func autoReset() {
         let currentBundle: BundleInfo = self.getCurrentBundle()
         if !currentBundle.isBuiltin() && !self.bundleExists(id: currentBundle.getId()) {
-            print("\(CapacitorUpdater.TAG) Folder at bundle path does not exist. Triggering reset.")
+            print("\(ReactNativeUpdaterCore.TAG) Folder at bundle path does not exist. Triggering reset.")
             self.reset()
         }
     }
@@ -905,7 +909,7 @@ import UIKit
     }
 
     public func reset(isInternal: Bool) {
-        print("\(CapacitorUpdater.TAG) reset: \(isInternal)")
+        print("\(ReactNativeUpdaterCore.TAG) reset: \(isInternal)")
         let currentBundleName = self.getCurrentBundle().getVersionName()
         self.setCurrentBundle(bundle: "")
         self.setFallbackBundle(fallback: Optional<BundleInfo>.none)
@@ -918,14 +922,14 @@ import UIKit
     public func setSuccess(bundle: BundleInfo, autoDeletePrevious: Bool) {
         self.setBundleStatus(id: bundle.getId(), status: BundleStatus.SUCCESS)
         let fallback: BundleInfo = self.getFallbackBundle()
-        print("\(CapacitorUpdater.TAG) Fallback bundle is: \(fallback.toString())")
-        print("\(CapacitorUpdater.TAG) Version successfully loaded: \(bundle.toString())")
+        print("\(ReactNativeUpdaterCore.TAG) Fallback bundle is: \(fallback.toString())")
+        print("\(ReactNativeUpdaterCore.TAG) Version successfully loaded: \(bundle.toString())")
         if autoDeletePrevious && !fallback.isBuiltin() && fallback.getId() != bundle.getId() {
             let res = self.delete(id: fallback.getId())
             if res {
-                print("\(CapacitorUpdater.TAG) Deleted previous bundle: \(fallback.toString())")
+                print("\(ReactNativeUpdaterCore.TAG) Deleted previous bundle: \(fallback.toString())")
             } else {
-                print("\(CapacitorUpdater.TAG) Failed to delete previous bundle: \(fallback.toString())")
+                print("\(ReactNativeUpdaterCore.TAG) Failed to delete previous bundle: \(fallback.toString())")
             }
         }
         self.setFallbackBundle(fallback: bundle)
@@ -938,7 +942,7 @@ import UIKit
     func unsetChannel() -> SetChannel {
         let setChannel: SetChannel = SetChannel()
         if (self.channelUrl ).isEmpty {
-            print("\(CapacitorUpdater.TAG) Channel URL is not set")
+            print("\(ReactNativeUpdaterCore.TAG) Channel URL is not set")
             setChannel.message = "Channel URL is not set"
             setChannel.error = "missing_config"
             return setChannel
@@ -961,7 +965,7 @@ import UIKit
                     setChannel.message = message
                 }
             case let .failure(error):
-                print("\(CapacitorUpdater.TAG) Error unset Channel", response.value ?? "", error)
+                print("\(ReactNativeUpdaterCore.TAG) Error unset Channel", response.value ?? "", error)
                 setChannel.message = "Error unset Channel \(String(describing: response.value))"
                 setChannel.error = "response_error"
             }
@@ -974,7 +978,7 @@ import UIKit
     func setChannel(channel: String) -> SetChannel {
         let setChannel: SetChannel = SetChannel()
         if (self.channelUrl ).isEmpty {
-            print("\(CapacitorUpdater.TAG) Channel URL is not set")
+            print("\(ReactNativeUpdaterCore.TAG) Channel URL is not set")
             setChannel.message = "Channel URL is not set"
             setChannel.error = "missing_config"
             return setChannel
@@ -998,7 +1002,7 @@ import UIKit
                     setChannel.message = message
                 }
             case let .failure(error):
-                print("\(CapacitorUpdater.TAG) Error set Channel", response.value ?? "", error)
+                print("\(ReactNativeUpdaterCore.TAG) Error set Channel", response.value ?? "", error)
                 setChannel.message = "Error set Channel \(String(describing: response.value))"
                 setChannel.error = "response_error"
             }
@@ -1011,7 +1015,7 @@ import UIKit
     func getChannel() -> GetChannel {
         let getChannel: GetChannel = GetChannel()
         if (self.channelUrl ).isEmpty {
-            print("\(CapacitorUpdater.TAG) Channel URL is not set")
+            print("\(ReactNativeUpdaterCore.TAG) Channel URL is not set")
             getChannel.message = "Channel URL is not set"
             getChannel.error = "missing_config"
             return getChannel
@@ -1050,13 +1054,77 @@ import UIKit
                     }
                 }
 
-                print("\(CapacitorUpdater.TAG) Error get Channel", response.value ?? "", error)
+                print("\(ReactNativeUpdaterCore.TAG) Error get Channel", response.value ?? "", error)
                 getChannel.message = "Error get Channel \(String(describing: response.value)))"
                 getChannel.error = "response_error"
             }
         }
         semaphore.wait()
         return getChannel
+    }
+
+    func listChannels() -> ListChannels {
+        let listChannels: ListChannels = ListChannels()
+        if (self.channelUrl).isEmpty {
+            print("\(ReactNativeUpdaterCore.TAG) Channel URL is not set")
+            listChannels.error = "Channel URL is not set"
+            return listChannels
+        }
+
+        let semaphore: DispatchSemaphore = DispatchSemaphore(value: 0)
+        let infoObject = self.createInfoObject()
+        var urlComponents = URLComponents(string: self.channelUrl)
+        var queryItems: [URLQueryItem] = []
+
+        let mirror = Mirror(reflecting: infoObject)
+        for child in mirror.children {
+            if let key = child.label, let value = child.value as? CustomStringConvertible {
+                queryItems.append(URLQueryItem(name: key, value: String(describing: value)))
+            } else if let key = child.label {
+                let optionalMirror = Mirror(reflecting: child.value)
+                if let value = optionalMirror.children.first?.value {
+                    queryItems.append(URLQueryItem(name: key, value: String(describing: value)))
+                }
+            }
+        }
+        urlComponents?.queryItems = queryItems
+
+        guard let url = urlComponents?.url else {
+            listChannels.error = "Invalid channel URL"
+            return listChannels
+        }
+
+        AF.request(
+            url,
+            method: .get,
+            requestModifier: { $0.timeoutInterval = self.timeout }
+        ).validate().responseDecodable(of: ListChannelsDec.self) { response in
+            defer {
+                semaphore.signal()
+            }
+            switch response.result {
+            case .success:
+                if let responseValue = response.value {
+                    if let error = responseValue.error {
+                        listChannels.error = error
+                    } else if let channels = responseValue.channels {
+                        listChannels.channels = channels.map { channel in
+                            var channelDict: [String: Any] = [:]
+                            channelDict["id"] = channel.id ?? ""
+                            channelDict["name"] = channel.name ?? ""
+                            channelDict["public"] = channel.public ?? false
+                            channelDict["allow_self_set"] = channel.allow_self_set ?? false
+                            return channelDict
+                        }
+                    }
+                }
+            case let .failure(error):
+                listChannels.error = "Request failed: \(error.localizedDescription)"
+            }
+        }
+
+        semaphore.wait()
+        return listChannels
     }
 
     private let operationQueue = OperationQueue()
@@ -1085,9 +1153,9 @@ import UIKit
             ).responseData { response in
                 switch response.result {
                 case .success:
-                    print("\(CapacitorUpdater.TAG) Stats sent for \(action), version \(versionName)")
+                    print("\(ReactNativeUpdaterCore.TAG) Stats sent for \(action), version \(versionName)")
                 case let .failure(error):
-                    print("\(CapacitorUpdater.TAG) Error sending stats: ", response.value ?? "", error.localizedDescription)
+                    print("\(ReactNativeUpdaterCore.TAG) Error sending stats: ", response.value ?? "", error.localizedDescription)
                 }
                 semaphore.signal()
             }
@@ -1102,7 +1170,7 @@ import UIKit
         if id != nil {
             trueId = id!
         }
-        // print("\(CapacitorUpdater.TAG) Getting info for bundle [\(trueId)]")
+        // print("\(ReactNativeUpdaterCore.TAG) Getting info for bundle [\(trueId)]")
         let result: BundleInfo
         if BundleInfo.ID_BUILTIN == trueId {
             result = BundleInfo(id: trueId, version: "", status: BundleStatus.SUCCESS, checksum: "")
@@ -1112,11 +1180,11 @@ import UIKit
             do {
                 result = try UserDefaults.standard.getObj(forKey: "\(trueId)\(self.INFO_SUFFIX)", castTo: BundleInfo.self)
             } catch {
-                print("\(CapacitorUpdater.TAG) Failed to parse info for bundle [\(trueId)]", error.localizedDescription)
+                print("\(ReactNativeUpdaterCore.TAG) Failed to parse info for bundle [\(trueId)]", error.localizedDescription)
                 result = BundleInfo(id: trueId, version: "", status: BundleStatus.PENDING, checksum: "")
             }
         }
-        // print("\(CapacitorUpdater.TAG) Returning info bundle [\(result.toString())]")
+        // print("\(ReactNativeUpdaterCore.TAG) Returning info bundle [\(result.toString())]")
         return result
     }
 
@@ -1136,26 +1204,26 @@ import UIKit
 
     public func saveBundleInfo(id: String, bundle: BundleInfo?) {
         if bundle != nil && (bundle!.isBuiltin() || bundle!.isUnknown()) {
-            print("\(CapacitorUpdater.TAG) Not saving info for bundle [\(id)]", bundle?.toString() ?? "")
+            print("\(ReactNativeUpdaterCore.TAG) Not saving info for bundle [\(id)]", bundle?.toString() ?? "")
             return
         }
         if bundle == nil {
-            print("\(CapacitorUpdater.TAG) Removing info for bundle [\(id)]")
+            print("\(ReactNativeUpdaterCore.TAG) Removing info for bundle [\(id)]")
             UserDefaults.standard.removeObject(forKey: "\(id)\(self.INFO_SUFFIX)")
         } else {
             let update = bundle!.setId(id: id)
-            print("\(CapacitorUpdater.TAG) Storing info for bundle [\(id)]", update.toString())
+            print("\(ReactNativeUpdaterCore.TAG) Storing info for bundle [\(id)]", update.toString())
             do {
                 try UserDefaults.standard.setObj(update, forKey: "\(id)\(self.INFO_SUFFIX)")
             } catch {
-                print("\(CapacitorUpdater.TAG) Failed to save info for bundle [\(id)]", error.localizedDescription)
+                print("\(ReactNativeUpdaterCore.TAG) Failed to save info for bundle [\(id)]", error.localizedDescription)
             }
         }
         UserDefaults.standard.synchronize()
     }
 
     private func setBundleStatus(id: String, status: BundleStatus) {
-        print("\(CapacitorUpdater.TAG) Setting status for bundle [\(id)] to \(status)")
+        print("\(ReactNativeUpdaterCore.TAG) Setting status for bundle [\(id)] to \(status)")
         let info = self.getBundleInfo(id: id)
         self.saveBundleInfo(id: id, bundle: info.setStatus(status: status.localizedString))
     }

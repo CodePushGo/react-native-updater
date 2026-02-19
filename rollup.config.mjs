@@ -2,21 +2,17 @@ export default {
   input: 'dist/esm/index.js',
   output: [
     {
-      file: 'dist/plugin.js',
-      format: 'iife',
-      name: 'capacitorCapacitorUpdater',
-      globals: {
-        '@capacitor/core': 'capacitorExports',
-      },
-      sourcemap: true,
-      inlineDynamicImports: true,
-    },
-    {
-      file: 'dist/plugin.cjs.js',
+      file: 'dist/index.js',
       format: 'cjs',
       sourcemap: true,
       inlineDynamicImports: true,
     },
+    {
+      file: 'dist/index.mjs',
+      format: 'esm',
+      sourcemap: true,
+      inlineDynamicImports: true,
+    },
   ],
-  external: ['@capacitor/core'],
+  external: ['react', 'react-native'],
 };

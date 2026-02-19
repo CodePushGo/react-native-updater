@@ -8,6 +8,9 @@ Podfile.lock
 Package.resolved
 Build
 xcuserdata
+ios/.xcode.env
+ios/.xcode.env.local
+ios/PrivacyInfo.xcprivacy
 /.build
 /Packages
 xcuserdata/

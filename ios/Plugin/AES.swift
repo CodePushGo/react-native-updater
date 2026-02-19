@@ -56,11 +56,11 @@ public struct AES128Key {
                 result.length = Int(decryptedLength)
                 return result as Data
             } else {
-                print("\(CapacitorUpdater.TAG) AES decryption failed with status: \(status)")
+                print("\(ReactNativeUpdaterCore.TAG) AES decryption failed with status: \(status)")
                 return nil
             }
         } else {
-            print("\(CapacitorUpdater.TAG) Failed to allocate memory for AES decryption")
+            print("\(ReactNativeUpdaterCore.TAG) Failed to allocate memory for AES decryption")
             return nil
         }
     }

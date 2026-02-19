@@ -4,11 +4,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-package ee.forgr.capacitor_updater;
+package com.codepushgo.reactnativeupdater;
 
 public enum DelayUntilNext {
-    background,
-    kill,
-    nativeVersion,
-    date
+  background,
+  kill,
+  nativeVersion,
+  date,
 }

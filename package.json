@@ -1,96 +1,70 @@
 {
-  "name": "@capgo/capacitor-updater",
+  "name": "@codepush-go/react-native-updater",
   "version": "7.0.50",
   "license": "MPL-2.0",
-  "description": "Live update for capacitor apps",
-  "main": "dist/plugin.cjs.js",
-  "module": "dist/esm/index.js",
+  "description": "Live updates for React Native apps",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "react-native": "src/index.ts",
   "types": "dist/esm/index.d.ts",
-  "unpkg": "dist/plugin.js",
   "files": [
-    "android/src/main/",
-    "android/proguard-rules.pro",
-    "android/build.gradle",
     "dist/",
-    "ios/Plugin/",
-    "CapgoCapacitorUpdater.podspec",
-    "Package.swift"
+    "src/",
+    "ios/",
+    "android/",
+    "react-native-updater.podspec",
+    "react-native.config.js"
   ],
   "author": "Martin Donadieu <martin@capgo.app>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Cap-go/capacitor-updater.git"
+    "url": "git+https://github.com/codepush-go/react-native-updater.git"
   },
   "bugs": {
-    "url": "https://github.com/Cap-go/capacitor-updater/issues"
+    "url": "https://github.com/codepush-go/react-native-updater/issues"
   },
   "keywords": [
-    "capacitor",
+    "react-native",
+    "codepush",
+    "code push",
     "live updates",
-    "live update",
-    "updates",
-    "auto update",
-    "manual update",
-    "capgo",
-    "plugin",
-    "OTA",
-    "ionic",
-    "appflow alternative",
-    "capawesome alternative",
-    "native"
+    "ota",
+    "updater",
+    "codepushgo"
   ],
   "scripts": {
-    "verify": "npm run verify:ios && npm run verify:android && npm run verify:web",
-    "verify:ios": "cd ios && pod install && xcodebuild -workspace Plugin.xcworkspace -scheme Plugin && cd ..",
-    "verify:iosSPM": "xcodebuild -workspace ios/Plugin.xcworkspace -scheme Plugin -destination generic/platform=iOS",
+    "verify": "bun run verify:ios && bun run verify:android && bun run verify:web",
+    "verify:ios": "cd ios && pod install && xcodebuild -workspace Plugin.xcworkspace -scheme Plugin -destination generic/platform=iOS && cd ..",
     "verify:android": "cd android && ./gradlew clean build test && cd ..",
-    "verify:web": "npm run build",
-    "lint": "npm run eslint && npm run prettier -- --check && npm run swiftlint -- lint",
-    "fmt": "npm run eslint -- --fix && npm run prettier -- --write && npm run swiftlint -- --autocorrect --format",
-    "eslint": "eslint . --ext .ts",
-    "prettier": "prettier \"**/*.{css,html,ts,js,java}\" --plugin=prettier-plugin-java",
-    "swiftlint": "node-swiftlint",
-    "docgen": "docgen --api CapacitorUpdaterPlugin --output-readme README.md --output-json dist/docs.json",
-    "docgen:api": "docgen --api CapacitorUpdaterPlugin --output-readme api.md --output-json dist/docs.json && awk '{sub(/###/,\"##\")}1' api.md > temp.txt && mv temp.txt api.md",
-    "build": "npm run clean && npm run docgen && tsc && rollup -c rollup.config.mjs",
+    "verify:web": "bun run build",
+    "lint": "bun run eslint && bun run prettier -- --check",
+    "fmt": "bun run eslint -- --fix && bun run prettier -- --write",
+    "eslint": "eslint src --ext .ts",
+    "prettier": "prettier \"src/**/*.{ts,js}\" \"android/src/**/*.java\" --plugin=prettier-plugin-java",
+    "build": "bun run clean && tsc && rollup -c rollup.config.mjs",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "bun run build"
   },
   "devDependencies": {
-    "@capacitor/android": "^7.0.0",
-    "@capacitor/cli": "^7.0.0",
-    "@capacitor/core": "^7.0.0",
-    "@capacitor/docgen": "^0.3.0",
-    "@capacitor/ios": "^7.0.0",
-    "@ionic/eslint-config": "^0.4.0",
-    "@ionic/prettier-config": "^4.0.0",
-    "@ionic/swiftlint-config": "^2.0.0",
     "@types/node": "^22.13.1",
+    "@types/react": "^19.0.11",
+    "@types/react-native": "^0.73.0",
+    "@typescript-eslint/parser": "^8.25.0",
     "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.31.0",
     "husky": "^9.1.7",
     "prettier": "^3.4.2",
     "prettier-plugin-java": "^2.6.7",
+    "react": "*",
+    "react-native": "*",
     "rimraf": "^6.0.1",
-    "rollup": "^4.34.6",
-    "swiftlint": "^2.0.0",
-    "typescript": "^5.7.3"
+    "rollup": "^4.18.0",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "typescript": "~5.4.5"
   },
   "peerDependencies": {
-    "@capacitor/core": ">=7.0.0"
-  },
-  "prettier": "@ionic/prettier-config",
-  "swiftlint": "@ionic/swiftlint-config",
-  "eslintConfig": {
-    "extends": "@ionic/eslint-config/recommended"
-  },
-  "capacitor": {
-    "ios": {
-      "src": "ios"
-    },
-    "android": {
-      "src": "android"
-    }
+    "react": "*",
+    "react-native": "*"
   }
 }

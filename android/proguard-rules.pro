@@ -24,5 +24,5 @@
 -keepattributes *Annotation*
 
 # Necessary for Gson Deserialization
--keep class ee.forgr.capacitor_updater.DelayCondition { *; }
+-keep class com.codepushgo.reactnativeupdater.DelayCondition { *; }
 -keepattributes Signature
